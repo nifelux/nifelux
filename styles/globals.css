@@ -1,8 +1,8 @@
+@import url("https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import url("https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&display=swap");
 
 :root {
   --brand-blue: #2563eb; --brand-purple: #7c3aed; --brand-green: #22c55e;
@@ -47,5 +47,6 @@ h1,h2,h3,h4,h5,h6 { font-family: var(--font-syne), "Syne", system-ui, sans-serif
 .input-brand:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.15); }
 .gradient-border { position: relative; background: var(--bg-card); border-radius: 16px; }
 .gradient-border::before { content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px; background: linear-gradient(135deg, rgba(37,99,235,0.4), rgba(124,58,237,0.4)); -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none; }
+@keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-12px); } }
 @layer base { :root { --background: 222 84% 5%; --foreground: 210 40% 98%; --card: 222 47% 8%; --card-foreground: 210 40% 98%; --primary: 221 83% 53%; --primary-foreground: 210 40% 98%; --border: 217 33% 13%; --input: 217 33% 13%; --ring: 221 83% 53%; --radius: 0.625rem; } }
 @media (max-width: 640px) { :root { --section-padding: 3rem; --container-padding: 1rem; } }

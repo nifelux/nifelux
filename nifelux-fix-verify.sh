@@ -1,3 +1,9 @@
+#!/bin/bash
+
+# Fix: app/(auth)/verify/page.tsx is empty — not a valid module
+# This only breaks `npm run build`, not `npm run dev`
+
+cat > "app/(auth)/verify/page.tsx" << 'EOF'
 import { Metadata } from "next";
 import Link from "next/link";
 import { Mail, ArrowLeft } from "lucide-react";
@@ -31,3 +37,8 @@ export default function VerifyEmailPage() {
     </GlassCard>
   );
 }
+EOF
+
+echo "✅ app/(auth)/verify/page.tsx fixed"
+echo ""
+echo "Now run: npm run build"
