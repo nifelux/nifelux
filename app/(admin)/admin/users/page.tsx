@@ -33,7 +33,7 @@ export default function AdminUsersPage() {
 
   const updateRole = async (userId: string, role: UserRole) => {
     const s = createClient();
-    const { error } = await s.from("users").update({ role }).eq("id", userId);
+    const { error } = await s.from("users").update({ role: role as "user" | "staff" | "admin" | "super_admin" }).eq("id", userId);
     if (error) { toast.error("Failed to update role"); return; }
     setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, role } : u));
     setEditingRole(null);
@@ -43,7 +43,7 @@ export default function AdminUsersPage() {
   const toggleStatus = async (user: User) => {
     const newStatus = user.status === "active" ? "suspended" : "active";
     const s = createClient();
-    const { error } = await s.from("users").update({ status: newStatus }).eq("id", user.id);
+    const { error } = await s.from("users").update({ status: newStatus as "active" | "suspended" | "pending" }).eq("id", user.id);
     if (error) { toast.error("Failed to update status"); return; }
     setUsers((prev) => prev.map((u) => u.id === user.id ? { ...u, status: newStatus } : u));
     toast.success(`User ${newStatus}`);

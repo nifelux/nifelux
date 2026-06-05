@@ -6,7 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "type-check": "tsc --noEmit",
+    "lint:fix": "next lint --fix",
+    "db:push": "supabase db push",
+    "db:reset": "supabase db reset",
+    "pre-deploy": "bash scripts/pre-deploy-check.sh",
+    "deploy": "vercel --prod"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",

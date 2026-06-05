@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAdmin } from "@/utils/server-auth";
 import { createAdminClient } from "@/lib/supabase/server";
 import { generateIdNumber } from "@/utils/format";
 import { emailService } from "@/lib/email/service";
@@ -15,14 +16,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createAdminClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json<ApiResponse<null>>({ success: false, error: "Unauthorized" }, { status: 401 });
-
-    const { data: profile } = await supabase.from("users").select("role").eq("id", user.id).single();
-    if (!profile || !["admin", "super_admin"].includes(profile.role)) {
-      return NextResponse.json<ApiResponse<null>>({ success: false, error: "Forbidden" }, { status: 403 });
-    }
+    const { supabase, userId, isAdmin } = await requireAdmin();
+    if (!userId) return NextResponse.json<ApiResponse<null>>({ success: false, error: "Unauthorized" }, { status: 401 });
+    if (!isAdmin) return NextResponse.json<ApiResponse<null>>({ success: false, error: "Forbidden" }, { status: 403 });
 
     const { target_user_id } = await request.json();
     const id_number = generateIdNumber();
@@ -30,28 +26,28 @@ export async function POST(request: NextRequest) {
 
     const { data: newId, error } = await supabase
       .from("digital_ids")
-      .insert({ user_id: target_user_id, id_number, qr_code_url: "", expires_at, status: "active" })
+      .insert({
+        user_id: target_user_id as string,
+        id_number,
+        qr_code_url: null,
+        expires_at,
+        status: "active",
+      })
       .select("*, users(full_name, email)")
       .single();
 
     if (error) throw error;
 
-    // In-app notification
     await supabase.from("notifications").insert({
-      user_id: target_user_id,
+      user_id: target_user_id as string,
       title: "Digital ID Issued 🪪",
-      body: `Your Nifelux Digital ID (${id_number}) has been issued and is now active.`,
+      body: `Your Nifelux Digital ID (${id_number}) is now active.`,
       type: "success",
     });
 
-    // Email notification
-    const recipient = newId.users as { full_name: string; email: string };
+    const recipient = newId.users as { full_name: string; email: string } | null;
     if (recipient?.email) {
-      await emailService.sendIdIssued({
-        to: recipient.email,
-        name: recipient.full_name,
-        idNumber: id_number,
-      }).catch(console.error);
+      await emailService.sendIdIssued({ to: recipient.email, name: recipient.full_name, idNumber: id_number }).catch(console.error);
     }
 
     return NextResponse.json<ApiResponse<typeof newId>>({ success: true, data: newId, message: "ID issued" });

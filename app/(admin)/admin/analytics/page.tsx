@@ -21,19 +21,20 @@ export default function AdminAnalyticsPage() {
   const fetchStats = useCallback(async () => {
     setLoading(true);
     const s = createClient();
-
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
     const [users, ids, certs, payments, newUsers, successPay] = await Promise.all([
       s.from("users").select("*", { count: "exact", head: true }),
       s.from("digital_ids").select("*", { count: "exact", head: true }).eq("status", "active"),
       s.from("certifications").select("*", { count: "exact", head: true }),
-      s.from("payments").select("amount").eq("status", "success"),
+      s.from("payments").select("id, amount").eq("status", "success"),
       s.from("users").select("*", { count: "exact", head: true }).gte("created_at", weekAgo),
       s.from("payments").select("*", { count: "exact", head: true }).eq("status", "success"),
     ]);
 
-    const totalRevenue = (payments.data ?? []).reduce((a, p) => a + Number(p.amount), 0);
+    // Explicitly type the payments rows to avoid 'never' inference
+    const paymentRows = (payments.data ?? []) as { id: string; amount: number }[];
+    const totalRevenue = paymentRows.reduce((acc, p) => acc + Number(p.amount), 0);
 
     setStats({
       totalUsers: users.count ?? 0,
@@ -69,9 +70,7 @@ export default function AdminAnalyticsPage() {
 
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="glass-card p-5 h-32 animate-pulse" />
-          ))}
+          {[...Array(4)].map((_, i) => <div key={i} className="glass-card p-5 h-32 animate-pulse" />)}
         </div>
       ) : (
         <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -93,7 +92,6 @@ export default function AdminAnalyticsPage() {
         </StaggerContainer>
       )}
 
-      {/* Breakdown */}
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <GlassCard className="p-6 border border-white/[0.05]">
@@ -112,7 +110,8 @@ export default function AdminAnalyticsPage() {
                     <span className="text-xs font-semibold text-white">{value}</span>
                   </div>
                   <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
-                    <div className={`h-full ${color} rounded-full transition-all duration-700`} style={{ width: `${Math.min((value / max) * 100, 100)}%` }} />
+                    <div className={`h-full ${color} rounded-full transition-all duration-700`}
+                      style={{ width: `${Math.min((value / max) * 100, 100)}%` }} />
                   </div>
                 </div>
               ))}
@@ -123,13 +122,13 @@ export default function AdminAnalyticsPage() {
             <h3 className="font-display text-base font-bold text-white mb-5 flex items-center gap-2">
               <DollarSign className="w-4 h-4 text-brand-green" />Revenue Summary
             </h3>
-            <div className="space-y-4">
+            <div className="space-y-0">
               {[
                 { label: "Total Revenue", value: `₦${stats.totalRevenue.toLocaleString()}` },
                 { label: "Successful Transactions", value: stats.successfulPayments.toString() },
                 { label: "Average Transaction", value: stats.successfulPayments > 0 ? `₦${Math.round(stats.totalRevenue / stats.successfulPayments).toLocaleString()}` : "—" },
               ].map(({ label, value }) => (
-                <div key={label} className="flex items-center justify-between py-3 border-b border-white/[0.04] last:border-0">
+                <div key={label} className="flex items-center justify-between py-3.5 border-b border-white/[0.04] last:border-0">
                   <span className="text-sm text-text-muted">{label}</span>
                   <span className="text-sm font-bold text-white">{value}</span>
                 </div>

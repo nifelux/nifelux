@@ -1,16 +1,14 @@
 import { Metadata } from "next";
-export const metadata: Metadata = { title: "About" };
-export default function AboutPage() {
-  return (
-    <div className="min-h-screen bg-brand-dark flex items-center justify-center">
-      <div className="text-center px-4">
-        <div className="w-16 h-16 rounded-2xl bg-brand-gradient mx-auto flex items-center justify-center mb-6">
-          <span className="text-2xl">🚀</span>
-        </div>
-        <h1 className="font-display text-3xl font-bold text-white mb-3">About</h1>
-        <p className="text-text-muted text-sm max-w-sm mx-auto">Full page implementation ready. Copy the matching Phase 1 output file into this path.</p>
-        <a href="/" className="inline-flex items-center gap-2 mt-6 text-sm text-brand-blue-light hover:text-white transition-colors">← Back to Home</a>
-      </div>
-    </div>
-  );
-}
+import AboutClient from "@/features/about/AboutClient";
+
+export const metadata: Metadata = {
+  title: "About",
+  description: "Nifelux Technologies is a futuristic Nigerian technology company building intelligent AI systems, robotics, and automation for Africa and the world. Founded by Oluwanifemi Abdullahi Olude.",
+  openGraph: {
+    title: "About Nifelux Technologies",
+    description: "Building Africa's technology future from Lagos, Nigeria.",
+    images: [{ url: "/og/og-about.png", width: 1200, height: 630 }],
+  },
+};
+
+export default function AboutPage() { return <AboutClient />; }

@@ -60,7 +60,7 @@ export default function IdManagementPage() {
 
   const revokeId = async (id: string) => {
     const s = createClient();
-    const { error } = await s.from("digital_ids").update({ status: "revoked" }).eq("id", id);
+    const { error } = await s.from("digital_ids").update({ status: "revoked" as "active" | "expired" | "revoked" }).eq("id", id);
     if (error) { toast.error("Failed to revoke"); return; }
     setIds((prev) => prev.map((i) => i.id === id ? { ...i, status: "revoked" } : i));
     toast.success("ID revoked");

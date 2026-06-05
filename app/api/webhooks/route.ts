@@ -6,73 +6,55 @@ import { emailService } from "@/lib/email/service";
 export async function POST(request: NextRequest) {
   const body = await request.text();
   const signature = request.headers.get("x-ipayng-signature") ?? "";
-
-  // Verify signature
   if (!ipayngClient.verifyWebhookSignature(body, signature)) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }
 
   let event: { event: string; data: { reference: string; amount: number; customer: { email: string } } };
-  try {
-    event = JSON.parse(body);
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  }
+  try { event = JSON.parse(body); } catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
 
   const supabase = await createAdminClient();
 
   if (event.event === "charge.success") {
     const { reference, amount, customer } = event.data;
 
-    // Update payment record
     const { data: payment } = await supabase
       .from("payments")
       .update({ status: "success", paid_at: new Date().toISOString() })
       .eq("reference", reference)
-      .select("*, users(id, full_name, email)")
+      .select("id, user_id, amount, purpose, metadata")
       .single();
 
     if (payment) {
-      // Log if it's a contribution
-      if (payment.purpose === "contribution") {
+      const p = payment as { id: string; user_id: string | null; amount: number; purpose: string; metadata: Record<string, unknown> | null };
+
+      if (p.purpose === "contribution") {
         await supabase.from("support_contributions").insert({
-          payment_id: payment.id,
-          user_id: payment.user_id ?? null,
-          amount: payment.amount,
-          message: payment.metadata?.message ?? "",
-          anonymous: payment.metadata?.anonymous ?? false,
+          payment_id: p.id,
+          user_id: p.user_id,
+          amount: p.amount,
+          message: (p.metadata?.message as string) ?? null,
+          anonymous: (p.metadata?.anonymous as boolean) ?? false,
         });
       }
 
-      // Notify user if logged in
-      if (payment.user_id) {
+      if (p.user_id) {
         await supabase.from("notifications").insert({
-          user_id: payment.user_id,
-          title: "Payment Confirmed",
-          body: `Your payment of ₦${Number(payment.amount).toLocaleString()} was successful. Reference: ${reference}`,
+          user_id: p.user_id,
+          title: "Payment Confirmed ✅",
+          body: `₦${Number(p.amount).toLocaleString()} received. Ref: ${reference}`,
           type: "success",
         });
       }
 
-      // Send email receipt
       try {
-        await emailService.sendPaymentReceipt({
-          to: customer.email,
-          amount: amount / 100,
-          reference,
-          purpose: payment.purpose,
-        });
-      } catch (emailErr) {
-        console.error("Email receipt failed:", emailErr);
-      }
+        await emailService.sendPaymentReceipt({ to: customer.email, amount: amount / 100, reference, purpose: p.purpose });
+      } catch (e) { console.error("Email failed:", e); }
     }
   }
 
   if (event.event === "charge.failed") {
-    await supabase
-      .from("payments")
-      .update({ status: "failed" })
-      .eq("reference", event.data.reference);
+    await supabase.from("payments").update({ status: "failed" }).eq("reference", event.data.reference);
   }
 
   return NextResponse.json({ received: true });

@@ -17,24 +17,18 @@ export function useNotifications() {
     setUnreadCount(data.filter((n) => !n.read).length);
   }, [user]);
 
-  useEffect(() => {
-    fetchNotifications();
-  }, [fetchNotifications]);
+  useEffect(() => { fetchNotifications(); }, [fetchNotifications]);
 
   useEffect(() => {
     if (!user) return;
-    const supabase = createClient();
-    const channel = supabase
-      .channel(`notifications:${user.id}`)
-      .on("postgres_changes", {
-        event: "INSERT",
-        schema: "public",
-        table: "notifications",
-        filter: `user_id=eq.${user.id}`,
-      }, (payload) => {
-        setNotifications((prev) => [payload.new as Notification, ...prev]);
-        setUnreadCount((prev) => prev + 1);
-      })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const supabase = createClient() as any;
+    const channel = supabase.channel(`notifications:${user.id}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+        (payload: { new: Notification }) => {
+          setNotifications((prev) => [payload.new, ...prev]);
+          setUnreadCount((prev) => prev + 1);
+        })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [user]);
