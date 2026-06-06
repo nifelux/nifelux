@@ -1,7 +1,7 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
-  darkMode: "class",
+  darkMode: ["class"],
   content: [
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -12,13 +12,23 @@ const config: Config = {
     extend: {
       colors: {
         brand: {
-          blue: "#2563EB", "blue-light": "#3B82F6",
-          purple: "#7C3AED", "purple-light": "#8B5CF6",
-          green: "#22C55E", "green-light": "#4ADE80",
-          dark: "#050816", "dark-secondary": "#0B1120",
-          card: "#111827", border: "#1E293B",
+          blue: "#2563EB",
+          "blue-light": "#3B82F6",
+          purple: "#7C3AED",
+          "purple-light": "#8B5CF6",
+          green: "#22C55E",
+          "green-light": "#4ADE80",
+          dark: "#050816",
+          "dark-secondary": "#0B1120",
+          card: "#111827",
+          border: "#1E293B",
         },
-        text: { primary: "#FFFFFF", secondary: "#CBD5E1", muted: "#94A3B8", accent: "#64748B" },
+        text: {
+          primary: "#FFFFFF",
+          secondary: "#CBD5E1",
+          muted: "#94A3B8",
+          accent: "#64748B",
+        },
       },
       backgroundImage: {
         "brand-gradient": "linear-gradient(135deg, #2563EB 0%, #7C3AED 100%)",
@@ -52,5 +62,4 @@ const config: Config = {
   },
   plugins: [require("tailwindcss-animate")],
 };
-
 export default config;
