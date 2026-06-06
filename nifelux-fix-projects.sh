@@ -1,3 +1,19 @@
+#!/bin/bash
+
+# ============================================
+# NIFELUX — FIX BUILD ERRORS
+# 1. Delete corrupted .next cache
+# 2. Fix projects page JSX tag mismatch
+# ============================================
+
+echo "🔧 Fixing build errors..."
+
+# Clear corrupted .next cache
+rm -rf .next
+echo "✅ .next cache cleared"
+
+# Rewrite projects page cleanly
+cat > "app/(public)/projects/page.tsx" << 'EOF'
 "use client";
 import { motion } from "framer-motion";
 import { BrainCircuit, Bot, Layers, Cpu, Globe, Clock, ArrowRight } from "lucide-react";
@@ -159,3 +175,12 @@ export default function ProjectsPage() {
     </div>
   );
 }
+EOF
+
+echo "✅ projects/page.tsx rewritten cleanly"
+echo ""
+echo "Now run:"
+echo "  npm run build"
+echo ""
+echo "If build passes:"
+echo "  git add . && git commit -m 'fix: projects JSX, clear build cache' && git push"
