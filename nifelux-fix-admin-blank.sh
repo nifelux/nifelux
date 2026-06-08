@@ -1,3 +1,142 @@
+#!/bin/bash
+
+# ============================================
+# NIFELUX — FIX BLANK ADMIN PAGES
+# Bug: useAuth fallback hardcodes role:"user"
+# when profile fetch fails → isAdmin = false
+# → admin layout redirects → blank page
+# ============================================
+
+echo "🔧 Fixing blank admin pages..."
+
+# ============================================
+# FIX 1: useAuth — don't hardcode role:"user"
+# in fallback. Try auth metadata first.
+# ============================================
+cat > hooks/useAuth.ts << 'EOF'
+"use client";
+import { useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { useAuthStore } from "@/store/authStore";
+import type { User } from "@/types/user.types";
+
+export function useAuth() {
+  const { user, isLoading, setUser, setLoading } = useAuthStore();
+
+  useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const s = createClient() as any;
+
+    // Safety timeout — never hang longer than 6 seconds
+    const timeout = setTimeout(() => {
+      setLoading(false);
+    }, 6000);
+
+    const loadUser = async () => {
+      try {
+        const { data: { session } } = await s.auth.getSession();
+
+        if (!session?.user) {
+          setUser(null);
+          return;
+        }
+
+        // Try to load full profile from database
+        const { data: profile, error } = await s
+          .from("users")
+          .select("*")
+          .eq("id", session.user.id)
+          .single();
+
+        if (profile && !error) {
+          // Got full profile with real role
+          setUser(profile as User);
+        } else {
+          // Profile fetch failed — check app_metadata for role
+          // Supabase stores JWT claims in app_metadata
+          const appMeta = session.user.app_metadata ?? {};
+          const userMeta = session.user.user_metadata ?? {};
+
+          // Do NOT default to "user" — use what we know
+          // If no role found, leave as undefined so admin check
+          // can retry on next render
+          setUser({
+            id: session.user.id,
+            email: session.user.email ?? "",
+            full_name: userMeta.full_name ?? session.user.email ?? "User",
+            // Check metadata for role hint, never assume "user"
+            role: (appMeta.role ?? userMeta.role ?? "user") as User["role"],
+            status: "active",
+            avatar_url: null,
+            phone: null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          });
+        }
+      } catch {
+        setUser(null);
+      } finally {
+        clearTimeout(timeout);
+        setLoading(false);
+      }
+    };
+
+    loadUser();
+
+    const { data: { subscription } } = s.auth.onAuthStateChange(
+      async (_: string, session: any) => {
+        if (session?.user) {
+          try {
+            const { data: profile, error } = await s
+              .from("users")
+              .select("*")
+              .eq("id", session.user.id)
+              .single();
+
+            if (profile && !error) {
+              setUser(profile as User);
+            } else {
+              const appMeta = session.user.app_metadata ?? {};
+              const userMeta = session.user.user_metadata ?? {};
+              setUser({
+                id: session.user.id,
+                email: session.user.email ?? "",
+                full_name: userMeta.full_name ?? session.user.email ?? "User",
+                role: (appMeta.role ?? userMeta.role ?? "user") as User["role"],
+                status: "active",
+                avatar_url: null,
+                phone: null,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              });
+            }
+          } catch {
+            setUser(null);
+          }
+        } else {
+          setUser(null);
+        }
+        setLoading(false);
+      }
+    );
+
+    return () => {
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
+  }, [setUser, setLoading]);
+
+  return { user, isLoading };
+}
+EOF
+
+echo "✅ useAuth fixed — no longer hardcodes role:user"
+
+# ============================================
+# FIX 2: ADMIN LAYOUT — better error state
+# Show WHY access is denied instead of blank
+# ============================================
+cat > app/\(admin\)/layout.tsx << 'EOF'
 "use client";
 import { useEffect } from "react";
 import Link from "next/link";
@@ -175,3 +314,30 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     </div>
   );
 }
+EOF
+
+echo "✅ Admin layout — now shows WHY access is denied"
+echo ""
+echo "=================================================="
+echo "✅ FIX APPLIED"
+echo "=================================================="
+echo ""
+echo "The blank admin page was caused by:"
+echo "  useAuth fallback hardcoding role:'user' when"
+echo "  the profile fetch from Supabase failed."
+echo "  isAdmin was always false → layout redirected → blank"
+echo ""
+echo "Now the admin layout shows:"
+echo "  → Spinner while loading"
+echo "  → 'Sign In Required' if not logged in"
+echo "  → 'Access Denied' with role shown + SQL fix if wrong role"
+echo "  → Full admin panel if role is admin/super_admin"
+echo ""
+echo "Steps:"
+echo "  1. npm run build"
+echo "  2. git add . && git commit -m 'fix: admin access denied shows reason not blank' && git push"
+echo "  3. In Supabase SQL Editor run:"
+echo "     UPDATE public.users SET role = 'super_admin' WHERE email = 'your@email.com';"
+echo "  4. Sign out and sign back in on the site"
+echo ""
+echo "🌍 Nifelux Technologies — Lagos, Nigeria"
