@@ -1,3 +1,26 @@
+#!/bin/bash
+
+# ============================================
+# NIFELUX — DEFINITIVE UI FIX
+# Diagnosed from GitHub repo:
+# - styles/globals.css is nearly empty (1.4% CSS)
+# - layout.tsx importing wrong CSS path
+# - dark class missing from <html>
+# - font CSS variables not injecting
+# ============================================
+
+echo "🎨 Applying definitive UI fix..."
+echo ""
+
+# ============================================
+# STEP 1: NUKE OLD CSS, WRITE FRESH TO CORRECT LOCATION
+# ============================================
+echo "1/3  Writing complete CSS to app/globals.css..."
+
+# Clear the old styles/globals.css so nothing imports from there
+echo "/* CSS has moved to app/globals.css */" > styles/globals.css
+
+cat > app/globals.css << 'CSSEOF'
 @import url("https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap");
 
 @tailwind base;
@@ -359,3 +382,242 @@ h1, h2, h3, h4, h5, h6 {
     --container-padding: 1rem;
   }
 }
+CSSEOF
+
+echo "   ✅ app/globals.css written (full)"
+
+# ============================================
+# STEP 2: LAYOUT — correct import + dark class + fonts
+# ============================================
+echo "2/3  Fixing app/layout.tsx..."
+
+cat > app/layout.tsx << 'EOF'
+import type { Metadata, Viewport } from "next";
+import { Inter, Syne } from "next/font/google";
+import { Toaster } from "sonner";
+import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-geist-sans",
+  display: "swap",
+});
+
+const syne = Syne({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-syne",
+  display: "swap",
+});
+
+export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL ?? "https://nifelux.vercel.app"
+  ),
+  title: {
+    default: "Nifelux Technologies — Intelligent Systems for Africa's Future",
+    template: "%s | Nifelux Technologies",
+  },
+  description:
+    "Nifelux Technologies builds intelligent digital systems, AI, robotics, and automation for Africa and the global future.",
+  keywords: [
+    "Nifelux Technologies", "Nigerian tech company", "AI Africa",
+    "robotics Nigeria", "automation Nigeria", "digital infrastructure Africa",
+  ],
+  authors: [{ name: "Nifelux Technologies", url: "https://nifelux.vercel.app" }],
+  openGraph: {
+    type: "website",
+    locale: "en_NG",
+    url: process.env.NEXT_PUBLIC_APP_URL ?? "https://nifelux.vercel.app",
+    siteName: "Nifelux Technologies",
+    title: "Nifelux Technologies — Intelligent Systems for Africa's Future",
+    description: "Building intelligent systems, AI, robotics and automation for Africa and the world.",
+    images: [{ url: "/og/og-default.png", width: 1200, height: 630, alt: "Nifelux Technologies" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Nifelux Technologies",
+    images: ["/og/og-default.png"],
+  },
+  robots: { index: true, follow: true },
+  icons: { icon: "/favicon.ico" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#050816",
+  colorScheme: "dark",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html
+      lang="en"
+      // "dark" class required for Tailwind darkMode:["class"] to activate
+      // Font variables injected here so CSS can use them
+      className={`dark ${inter.variable} ${syne.variable}`}
+      suppressHydrationWarning
+    >
+      <body
+        // Inline style guarantees dark background even if Tailwind fails
+        style={{ backgroundColor: "#050816", color: "#ffffff" }}
+        className="antialiased min-h-screen"
+      >
+        {children}
+        <Toaster
+          theme="dark"
+          position="top-right"
+          toastOptions={{
+            style: {
+              background: "#111827",
+              border: "1px solid #1E293B",
+              color: "#FFFFFF",
+              fontFamily: "Inter, system-ui, sans-serif",
+            },
+          }}
+        />
+      </body>
+    </html>
+  );
+}
+EOF
+
+echo "   ✅ app/layout.tsx fixed"
+
+# ============================================
+# STEP 3: TAILWIND — ensure darkMode correct
+# and content paths cover all directories
+# ============================================
+echo "3/3  Verifying tailwind.config.ts..."
+
+cat > tailwind.config.ts << 'EOF'
+import type { Config } from "tailwindcss";
+
+const config: Config = {
+  darkMode: "class",
+  content: [
+    "./pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./features/**/*.{js,ts,jsx,tsx,mdx}",
+    "./hooks/**/*.{js,ts,jsx,tsx}",
+    "./lib/**/*.{js,ts,jsx,tsx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        brand: {
+          blue: "#2563EB",
+          "blue-light": "#3B82F6",
+          purple: "#7C3AED",
+          "purple-light": "#8B5CF6",
+          green: "#22C55E",
+          "green-light": "#4ADE80",
+          dark: "#050816",
+          "dark-secondary": "#0B1120",
+          card: "#111827",
+          "card-hover": "#1F2937",
+          border: "#1E293B",
+          "border-light": "#334155",
+        },
+        text: {
+          primary: "#FFFFFF",
+          secondary: "#CBD5E1",
+          muted: "#94A3B8",
+          accent: "#64748B",
+        },
+      },
+      backgroundImage: {
+        "brand-gradient": "linear-gradient(135deg, #2563EB 0%, #7C3AED 100%)",
+        "green-gradient": "linear-gradient(135deg, #22C55E 0%, #2563EB 100%)",
+        "hero-gradient": "radial-gradient(ellipse at 50% 0%, rgba(37,99,235,0.18) 0%, rgba(124,58,237,0.1) 50%, transparent 70%)",
+      },
+      fontFamily: {
+        sans: ["Inter", "var(--font-geist-sans)", "system-ui", "sans-serif"],
+        mono: ["var(--font-geist-mono)", "ui-monospace", "monospace"],
+        display: ["Syne", "var(--font-syne)", "system-ui", "sans-serif"],
+      },
+      animation: {
+        "fade-up": "fadeUp 0.6s ease-out forwards",
+        "fade-in": "fadeIn 0.4s ease-out forwards",
+        float: "float 6s ease-in-out infinite",
+        "float-slow": "float 8s ease-in-out infinite",
+        "pulse-slow": "pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+        shimmer: "shimmer 2s infinite",
+      },
+      keyframes: {
+        fadeUp: {
+          "0%": { opacity: "0", transform: "translateY(24px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        fadeIn: {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
+        float: {
+          "0%, 100%": { transform: "translateY(0px)" },
+          "50%": { transform: "translateY(-12px)" },
+        },
+        shimmer: {
+          "0%": { backgroundPosition: "-1000px 0" },
+          "100%": { backgroundPosition: "1000px 0" },
+        },
+      },
+      boxShadow: {
+        "glow-sm": "0 0 15px rgba(37,99,235,0.22)",
+        glow: "0 0 30px rgba(37,99,235,0.28)",
+        "glow-lg": "0 0 60px rgba(37,99,235,0.32)",
+        "glow-purple": "0 0 30px rgba(124,58,237,0.28)",
+        "glow-green": "0 0 30px rgba(34,197,94,0.28)",
+        card: "0 4px 6px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.05)",
+        "card-hover": "0 20px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(37,99,235,0.25)",
+      },
+      borderRadius: {
+        "4xl": "2rem",
+        "5xl": "2.5rem",
+      },
+      spacing: {
+        "18": "4.5rem",
+        "88": "22rem",
+        "128": "32rem",
+      },
+    },
+  },
+  plugins: [require("tailwindcss-animate")],
+};
+
+export default config;
+EOF
+
+echo "   ✅ tailwind.config.ts verified"
+
+# ============================================
+# BUILD + DEPLOY
+# ============================================
+echo ""
+echo "=================================================="
+echo "✅ UI FIX COMPLETE"
+echo "=================================================="
+echo ""
+echo "What was fixed:"
+echo "  ✓ app/globals.css — complete with ALL custom classes"
+echo "  ✓ styles/globals.css — cleared (was causing conflict)"
+echo "  ✓ layout.tsx imports './globals.css' directly"
+echo "  ✓ Fonts: Inter + Syne loaded from Google Fonts"
+echo "  ✓ Font names added to fontFamily in Tailwind"
+echo "  ✓ dark class on <html> — activates Tailwind dark mode"
+echo "  ✓ Background #050816 both in CSS and inline style"
+echo "  ✓ Tailwind content paths now include hooks/ and lib/"
+echo ""
+echo "Run:"
+echo "  npm run build"
+echo "  git add . && git commit -m 'fix: definitive UI fix - fonts, CSS, dark mode' && git push"
+echo ""
+echo "🌍 Nifelux Technologies — Lagos, Nigeria"

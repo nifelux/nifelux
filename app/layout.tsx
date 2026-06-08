@@ -1,12 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { Syne, Inter } from "next/font/google";
+import { Inter, Syne } from "next/font/google";
 import { Toaster } from "sonner";
 import "./globals.css";
 
-// Use Inter as fallback — reliable on all platforms
-// Geist is loaded via CSS variable if available
 const inter = Inter({
   subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
   variable: "--font-geist-sans",
   display: "swap",
 });
@@ -28,7 +27,11 @@ export const metadata: Metadata = {
   },
   description:
     "Nifelux Technologies builds intelligent digital systems, AI, robotics, and automation for Africa and the global future.",
-  keywords: ["Nifelux Technologies", "Nigerian tech company", "AI Africa", "robotics Nigeria"],
+  keywords: [
+    "Nifelux Technologies", "Nigerian tech company", "AI Africa",
+    "robotics Nigeria", "automation Nigeria", "digital infrastructure Africa",
+  ],
+  authors: [{ name: "Nifelux Technologies", url: "https://nifelux.vercel.app" }],
   openGraph: {
     type: "website",
     locale: "en_NG",
@@ -44,6 +47,7 @@ export const metadata: Metadata = {
     images: ["/og/og-default.png"],
   },
   robots: { index: true, follow: true },
+  icons: { icon: "/favicon.ico" },
 };
 
 export const viewport: Viewport = {
@@ -51,16 +55,27 @@ export const viewport: Viewport = {
   colorScheme: "dark",
   width: "device-width",
   initialScale: 1,
+  maximumScale: 5,
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html
       lang="en"
+      // "dark" class required for Tailwind darkMode:["class"] to activate
+      // Font variables injected here so CSS can use them
       className={`dark ${inter.variable} ${syne.variable}`}
       suppressHydrationWarning
     >
-      <body className="bg-[#050816] text-white antialiased">
+      <body
+        // Inline style guarantees dark background even if Tailwind fails
+        style={{ backgroundColor: "#050816", color: "#ffffff" }}
+        className="antialiased min-h-screen"
+      >
         {children}
         <Toaster
           theme="dark"
@@ -70,6 +85,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               background: "#111827",
               border: "1px solid #1E293B",
               color: "#FFFFFF",
+              fontFamily: "Inter, system-ui, sans-serif",
             },
           }}
         />
